@@ -1,6 +1,8 @@
 # Build outputs (regenerable — produced by electron-vite / electron-builder)
-/Apps/
+# NOTE: Apps/ (the distributable installers) is intentionally NOT ignored so the
+# built apps ship with the repo. AppsBuild/ is the packaging scratch dir.
 /AppsBuild/
+/Apps/win-unpacked/
 dist/
 
 # Dependencies and build caches (also covered by Source/.gitignore)
