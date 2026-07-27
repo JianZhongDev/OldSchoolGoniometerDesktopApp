@@ -1,0 +1,11 @@
+# Build outputs (regenerable — produced by electron-vite / electron-builder)
+/Apps/
+/AppsBuild/
+dist/
+
+# Dependencies and build caches (also covered by Source/.gitignore)
+node_modules/
+out/
+*.log
+.DS_Store
+.vite/

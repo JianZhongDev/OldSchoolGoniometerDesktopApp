@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Lock down the renderer: no remote content, no eval. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:;"
+    />
+    <title>Goniometer Overlay</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="stage"></div>
+
+    <!-- Single control panel anchored below the dial: the angle readout on top,
+         the control buttons beneath. Always clickable (even when locked) so the
+         user can always read angles, unlock, change mode, or quit. -->
+    <div id="panel">
+      <div id="readout">
+        <button id="ro-s" class="ro-edit ro-s" title="Click to set the stationary arm's absolute angle">S –</button>
+        <span id="ro-between" class="ro-between">∠ –</span>
+        <button id="ro-m" class="ro-edit ro-m" title="Click to set the moving arm's absolute angle">M –</button>
+      </div>
+      <div id="toolbar">
+        <button id="tb-mode" title="Switch arm display: lines / metric / imperial / pixel ruler">Lines</button>
+        <button id="tb-snap" title="Toggle angle snapping on/off">Snap 1°</button>
+        <button id="tb-measure" title="Measure mode: drag along a ruler for distance, on the dial for angle, from the centre for radius">📏 Measure</button>
+        <button id="tb-lock" title="Lock lets clicks pass through to the app underneath (Ctrl/Cmd+Shift+L)">🔓 Unlocked</button>
+        <button id="tb-gear" title="Settings">⚙</button>
+        <button id="tb-quit" class="danger" title="Quit Goniometer Overlay">✕</button>
+      </div>
+    </div>
+
+    <!-- Settings popover, toggled by the gear button. -->
+    <div id="popover" hidden>
+      <label>Opacity <span id="pv-opacity-val"></span>
+        <input id="pv-opacity" type="range" min="0.3" max="1" step="0.05" />
+      </label>
+      <label>Size <span id="pv-size-val"></span>
+        <input id="pv-size" type="range" min="80" max="400" step="5" />
+      </label>
+      <label>Snap step
+        <select id="pv-step">
+          <option value="0.5">0.5°</option>
+          <option value="1">1°</option>
+          <option value="5">5°</option>
+          <option value="15">15°</option>
+        </select>
+      </label>
+      <label><span id="pv-ppi-label">Ruler px / inch</span>
+        <input id="pv-ppi" type="number" min="1" max="600" step="0.1" />
+      </label>
+      <p class="hint">Calibrate against a real ruler if the on-screen size is off. Auto-tracks display scaling.</p>
+    </div>
+
+    <input id="angle-input" type="text" spellcheck="false" autocomplete="off" />
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

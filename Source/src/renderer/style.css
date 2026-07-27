@@ -1,0 +1,217 @@
+/*
+ * The overlay is a full-screen sheet of glass. The body MUST be transparent
+ * (never white) or the whole transparency trick fails (PRD §7.2, trap 1).
+ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+#stage {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * Chrome-panel palette. The single control panel (readout + buttons) and the
+ * popover share ONE palette, and it follows the OS light/dark theme. Light is
+ * the default; dark overrides below.
+ */
+:root {
+  --panel-bg: rgba(255, 255, 255, 0.94);
+  --panel-border: rgba(0, 0, 0, 0.25);
+  --panel-text: #202124;
+  --panel-btn-bg: rgba(0, 0, 0, 0.05);
+  --panel-btn-border: rgba(0, 0, 0, 0.12);
+  --panel-btn-hover: rgba(0, 0, 0, 0.1);
+  --panel-shadow: rgba(0, 0, 0, 0.25);
+  --accent: #1a73e8;
+  --hint: rgba(32, 33, 36, 0.6);
+  --stationary: #1a73e8;
+  --moving: #d93025;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --panel-bg: rgba(32, 33, 36, 0.92);
+    --panel-border: rgba(255, 255, 255, 0.16);
+    --panel-text: #e8eaed;
+    --panel-btn-bg: rgba(255, 255, 255, 0.08);
+    --panel-btn-border: rgba(255, 255, 255, 0.14);
+    --panel-btn-hover: rgba(255, 255, 255, 0.18);
+    --panel-shadow: rgba(0, 0, 0, 0.5);
+    --accent: #8ab4f8;
+    --hint: rgba(232, 234, 237, 0.6);
+    --stationary: #8ab4f8;
+    --moving: #f28b82;
+  }
+}
+
+/* --- Single control panel (readout row + button row) ------------------------ */
+#panel {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 2px 12px var(--panel-shadow);
+  white-space: nowrap;
+}
+
+/* Angle readout row. */
+#readout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+#readout .ro-between {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--panel-text);
+}
+
+#readout .ro-edit {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 2px 5px;
+  border-radius: 4px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+#readout .ro-s {
+  color: var(--stationary);
+}
+
+#readout .ro-m {
+  color: var(--moving);
+}
+
+#readout .ro-edit:hover {
+  background: var(--panel-btn-hover);
+}
+
+/* Button row (inside the panel — no chrome of its own). */
+#toolbar {
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+#toolbar button {
+  font: 600 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--panel-text);
+  background: var(--panel-btn-bg);
+  border: 1px solid var(--panel-btn-border);
+  border-radius: 6px;
+  padding: 6px 9px;
+  cursor: pointer;
+}
+
+#toolbar button:hover {
+  background: var(--panel-btn-hover);
+}
+
+#toolbar button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+#toolbar button.danger:hover {
+  background: #d93025;
+  border-color: #d93025;
+  color: #fff;
+}
+
+/* --- Settings popover ------------------------------------------------------- */
+#popover {
+  position: absolute;
+  z-index: 20;
+  width: 220px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 4px 16px var(--panel-shadow);
+  color: var(--panel-text);
+  font-size: 12px;
+}
+
+#popover[hidden] {
+  display: none;
+}
+
+#popover label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+#popover input[type="range"] {
+  width: 100%;
+  margin-top: 4px;
+  accent-color: var(--accent);
+}
+
+#popover select,
+#popover input[type="number"] {
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px;
+  border-radius: 5px;
+  border: 1px solid var(--panel-btn-border);
+  background: var(--panel-btn-bg);
+  color: var(--panel-text);
+}
+
+#popover .hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--hint);
+}
+
+/* --- Numeric-entry input (PRD §6.3) ----------------------------------------- */
+#angle-input {
+  position: absolute;
+  display: none;
+  width: 82px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.98);
+  color: #202124;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  text-align: center;
+  outline: none;
+  z-index: 30;
+}
+
+#angle-input.visible {
+  display: block;
+}
