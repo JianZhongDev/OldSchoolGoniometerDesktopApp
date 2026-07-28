@@ -44,10 +44,16 @@ to the app underneath, except on the goniometer itself.
 3. There's **no window to close** — the app lives in the **system tray** (protractor icon). Quit from there, from the **✕** button on the on-screen panel, or with **Ctrl + Shift + Q**.
 
 ### macOS
-A macOS `.dmg` isn't published yet (it has to be built on a Mac — see
-[Build from source](#-build-from-source)). Once built, open the `.dmg`, drag the
-app to Applications, then right-click the app → **Open → Open** the first time
-(unsigned-app bypass). The app runs in the **menu bar** (no dock icon).
+1. Download **`Goniometer Overlay <version>-universal.dmg`** from the
+   [**Releases**](https://github.com/JianZhongDev/OldSchoolGoniometerDesktopApp/releases)
+   page (a universal build — runs on both Apple Silicon and Intel).
+2. Open the `.dmg` and drag the app to **Applications**.
+3. First launch: right-click the app → **Open → Open**.
+   > ⚠️ This build isn't code-signed/notarized yet, so double-clicking shows
+   > *"…can't be opened because Apple cannot check it for malicious software."*
+   > The right-click → **Open** bypass only needs doing once.
+4. The app runs in the **menu bar** (no dock icon). Quit from there, from the
+   **✕** button on the on-screen panel, or with **Cmd + Shift + Q**.
 
 ---
 
@@ -111,11 +117,18 @@ npm ci          # exact, isolated install — no global packages
 npm run dev     # launch the overlay in development
 ```
 
-Package installers (build each platform **on that platform**):
+Package installers locally (each platform must be built **on that platform**):
 
 ```bash
 npm run package:win     # → Apps/  (NSIS installer + portable .exe)   [on Windows]
 npm run package:mac     # → Apps/  (universal .dmg)                    [on macOS]
+```
+
+Or just **push a version tag** — GitHub Actions builds *both* platforms and
+attaches the installers to a Release (no Mac of your own needed for the `.dmg`):
+
+```bash
+git tag v1.2.3 && git push origin v1.2.3
 ```
 
 > Detailed build notes, architecture, and every gotcha are documented for
