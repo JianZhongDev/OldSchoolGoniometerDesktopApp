@@ -5,7 +5,7 @@
 > how to build/package it, how to use it, its architecture, and every non-obvious
 > gotcha discovered so far. Read this top to bottom before touching the code.
 >
-> **Last updated:** 2026-07-26 · **App version:** 1.0.0
+> **Last updated:** 2026-07-28 · **App version:** 1.0.0
 
 ---
 
@@ -22,8 +22,9 @@
 - **Language/stack:** Electron 31 + TypeScript 5 + electron-vite 2, **no UI
   framework** — the whole UI is one inline SVG plus a small HTML control panel.
 - **Toolchain:** Node is pinned to **20.18.0** / npm **10.8.2** via **Volta**.
-- **Status:** feature-complete for the MVP + several extensions; Windows build is
-  produced and verified; macOS build is not (can only be built on a Mac).
+- **Status:** feature-complete for the MVP + several extensions; Windows `.exe`s
+  **and** the macOS universal `.dmg` are both produced by CI and published to the
+  `v1.0.0` GitHub Release (§11.4). Neither is code-signed yet.
 - **Run it:** `cd Source && npm ci && npm run dev`.
 - **Quit it (no window chrome!):** the **✕** button on the on-screen panel, the
   **tray icon → Quit**, or the global shortcut **Ctrl/Cmd+Shift+Q**.
@@ -84,8 +85,6 @@ down); range `[0, 360)`. Screen Y is down, so the Y term is negated in the math.
   ruler-generation cap, guaranteed keyboard exit.
 
 ### Not done / limitations
-- **macOS `.dmg` is NOT built** — electron-builder can only produce/sign a macOS
-  app on macOS. Needs a Mac + `build/icon.icns` (see §11).
 - **Unsigned builds** — no code-signing certificates, so first launch triggers a
   one-time SmartScreen (Windows) / Gatekeeper (macOS) bypass. Full function works
   after the bypass. Signing needs paid certs (Apple Developer Program; a Windows
@@ -409,18 +408,26 @@ Produces (in `Apps/`):
    dir (`--config.directories.output=<clean>`), then copy the final `.exe`s into
    `Apps/`. The lock clears on its own after a while (or a reboot).
 
-### 11.2 macOS (must be done on a Mac — cannot be built on Windows)
-```bash
-cd Source
-npm ci
-# First add build/icon.icns (a macOS icon; not generated on Windows).
-npm run package:mac        # → ../Apps/Goniometer Overlay-1.0.0-universal.dmg
-```
-`electron-builder.yml` already targets a **universal** `.dmg`, sets
-`LSUIElement:true` (no dock icon), hardened runtime, and entitlements
-(`build/entitlements.mac.plist`). For a clean (no-Gatekeeper-warning) build you
-must code-sign + notarize: set `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`,
-`APPLE_TEAM_ID` env vars and provide a Developer ID Application certificate.
+### 11.2 macOS (a local build needs a Mac; CI builds it on `macos-latest`)
+The macOS `.dmg` **cannot be built on Windows** — electron-builder needs macOS
+tooling (`hdiutil`, `codesign`). It is produced two ways:
+- **In CI (default):** the `macos` job in `release.yml` runs on a real
+  `macos-latest` runner, so pushing a `v*` tag builds the `.dmg` with no Mac of
+  your own (§11.4). This is how `v1.0.0`'s DMG was produced.
+- **Locally on a Mac:**
+  ```bash
+  cd Source
+  npm ci
+  npm run package:mac        # → ../Apps/Goniometer Overlay-1.0.0-universal.dmg
+  ```
+`electron-builder.yml` targets a **universal** `.dmg`, sets `LSUIElement:true` (no
+dock icon), hardened runtime, and entitlements (`build/entitlements.mac.plist`).
+The mac `icon` points at `build/icon.png` (1024×1024) — electron-builder
+generates the `.icns` from it on the runner, so **no `build/icon.icns` is
+required** (add one if you want a hand-tuned multi-resolution icon). For a clean
+(no-Gatekeeper-warning) build you must code-sign + notarize: set `APPLE_ID`,
+`APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` env vars and provide a Developer ID
+Application certificate.
 
 ### 11.3 Signing status
 Both current builds are **unsigned**. First launch shows a one-time prompt
@@ -437,9 +444,11 @@ git-ignored. Do **not** `git add` the `.exe`/`.dmg` files.
 **How releases are produced** — [`.github/workflows/release.yml`](../.github/workflows/release.yml):
 - Trigger: pushing a tag matching `v*` (e.g. `v1.0.0`), or the **Run workflow**
   button on the Actions tab (`workflow_dispatch`).
-- Runs on `windows-latest`, sets up Node 20.18.0, `npm ci`, `npm run build`,
-  `npx electron-builder --win --publish never`, then attaches `Apps/*.exe` to the
-  Release with `softprops/action-gh-release`.
+- Two independent jobs, each `npm ci` → `npm run build` → `electron-builder` →
+  `softprops/action-gh-release`, both uploading to the **same** `v*` tag release:
+  - **`windows`** (`windows-latest`): `--win` → attaches `Apps/*.exe`.
+  - **`macos`** (`macos-latest`): `--mac` → attaches the universal `Apps/*.dmg`.
+    macOS runner minutes are **free** because the repo is public.
 - Auth: uses the built-in `GITHUB_TOKEN` (workflow has `permissions: contents:
   write`) — no manual login or secrets needed for an unsigned build. The CI
   runner has the privileges electron-builder's `winCodeSign` needs, so the local
@@ -457,11 +466,11 @@ git push origin v1.0.1
 The installer filenames come from `Source/package.json` `version`, so **keep the
 tag and that version in sync** (tag `vX.Y.Z` ↔ version `X.Y.Z`).
 
-**macOS in CI:** not enabled yet. To add it, create a `macos-latest` job mirroring
-the Windows one running `npm run package:mac`, and first commit a
-`Source/build/icon.icns` (see §11.2). For a notarized signed build, add
-`APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` (and a Developer ID
-cert) as repo secrets.
+**macOS in CI:** enabled — the `macos` job builds the universal `.dmg` on every
+`v*` tag (see above). For a notarized signed build, add `APPLE_ID` /
+`APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` (and a Developer ID cert as a
+`CSC_LINK` secret) and remove the `CSC_IDENTITY_AUTO_DISCOVERY: false` line from
+that job.
 
 **Signing in CI (optional):** add the cert as a base64 secret + `CSC_LINK` /
 `CSC_KEY_PASSWORD` (Windows) and remove the `CSC_IDENTITY_AUTO_DISCOVERY: false`
@@ -539,17 +548,17 @@ cause.
 
 ## 14. Suggested next steps / TODO
 
-1. **Cut the first release**: bump `Source/package.json` version, then
-   `git tag vX.Y.Z && git push origin vX.Y.Z` to trigger the CI release (§11.4).
-2. **macOS build/CI**: on a Mac (or a `macos-latest` CI job), generate
-   `build/icon.icns`, run `npm run package:mac`; ideally sign + notarize.
-3. **Code signing** for both platforms for a clean download experience.
-4. **Clean-VM verification** (PRD §9.6) before any public release.
-5. Optional polish from the PRD's open questions: "snap stationary arm to
+1. **Code signing** for both platforms for a clean download experience — the
+   `v1.0.0` Windows `.exe`s and macOS `.dmg` are all published but **unsigned**
+   (Apple Developer ID + notarization on macOS; an OV/EV cert on Windows). Wire
+   the certs into the two CI jobs (§11.3–§11.4).
+2. **Clean-VM verification** (PRD §9.6) before any public release — the macOS
+   `.dmg` in particular has only been built in CI, not launch-tested on a Mac.
+3. Optional polish from the PRD's open questions: "snap stationary arm to
    horizontal" button; half-circle dial option; accessibility (dashed vs solid
    arm in addition to color); a guided ruler calibration ("match a credit card").
-6. Consider automated tests around the pure modules (`geometry.ts`, `measure.ts`).
-7. Delete the old `OldSchoolGaniometerDesktopApp` folder + archive/delete the old
+4. Consider automated tests around the pure modules (`geometry.ts`, `measure.ts`).
+5. Delete the old `OldSchoolGaniometerDesktopApp` folder + archive/delete the old
    GitHub repo once you're confident in the new one.
 
 ---
@@ -588,4 +597,8 @@ cause.
 13. **Release distribution** — installers moved out of the repo to **GitHub
     Releases** via `.github/workflows/release.yml`; existing binaries purged from
     git history.
+14. **First release + macOS in CI** — cut the `v1.0.0` release; added a
+    `macos-latest` job so the universal `.dmg` builds in CI (icon generated from a
+    1024×1024 `build/icon.png`, no `.icns` needed). `v1.0.0` now carries both
+    Windows `.exe`s and the macOS `.dmg`.
 ```
