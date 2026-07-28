@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, clipboard, screen, nativeTheme } from 'electron'
+import { app, BrowserWindow, ipcMain, clipboard, screen, nativeTheme, shell } from 'electron'
 import type { GoniometerState } from '../shared/types'
 import { displayIdForWindow, allOverlayWindows } from './windows'
 import { loadDisplayState, saveDisplayState } from './store'
@@ -75,6 +75,13 @@ export function registerIpc(): void {
 
   ipcMain.on('overlay:quit', () => {
     app.quit()
+  })
+
+  // Open a link from the info panel externally. Only https is allowed.
+  ipcMain.on('overlay:open-external', (_e, url: string) => {
+    if (typeof url === 'string' && /^https:\/\//i.test(url)) {
+      shell.openExternal(url)
+    }
   })
 
   ipcMain.on('overlay:copy', (_e, text: string) => {

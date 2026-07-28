@@ -11,6 +11,14 @@ import { registerShortcuts, unregisterShortcuts } from './shortcuts'
 import { createTray, destroyTray } from './tray'
 import { isVisible, syncWindow } from './controller'
 
+// --- Transparent-overlay stability -------------------------------------------
+// A transparent, always-on-top window on Windows can have its GPU-composited
+// surface go stale after long use / display power events, leaving the overlay
+// visually frozen while the process keeps running. Software compositing is far
+// more reliable for this kind of window, and the app only draws lightweight SVG,
+// so the CPU cost is negligible. Must be called before app is ready.
+app.disableHardwareAcceleration()
+
 // --- Runtime isolation (PRD §9.7) --------------------------------------------
 // Dev and installed builds must not share one electron-store settings file, or
 // they overwrite each other's persisted per-display state.

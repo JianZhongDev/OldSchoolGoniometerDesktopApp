@@ -28,8 +28,33 @@
         <button id="tb-snap" title="Toggle angle snapping on/off">Snap 1°</button>
         <button id="tb-measure" title="Measure mode: drag along a ruler for distance, on the dial for angle, from the centre for radius">📏 Measure</button>
         <button id="tb-lock" title="Lock lets clicks pass through to the app underneath (Ctrl/Cmd+Shift+L)">🔓 Unlocked</button>
+        <button id="tb-info" class="icon-btn" title="About Goniometer Overlay" aria-label="About">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="10" cy="10" r="8.4" fill="none" stroke="currentColor" stroke-width="1.6" />
+            <circle cx="10" cy="6.1" r="1.15" fill="currentColor" />
+            <rect x="8.95" y="8.6" width="2.1" height="6.2" rx="1.05" fill="currentColor" />
+          </svg>
+        </button>
         <button id="tb-gear" title="Settings">⚙</button>
         <button id="tb-quit" class="danger" title="Quit Goniometer Overlay">✕</button>
+      </div>
+    </div>
+
+    <!-- Info / About popover, toggled by the ⓘ button. -->
+    <div id="info-popover" hidden>
+      <div class="info-head">
+        <span class="info-title">Goniometer Overlay</span>
+        <span class="info-ver">v1.0.0</span>
+      </div>
+      <p class="info-desc">
+        An always-on-top protractor with two hinged ruler arms that floats over any
+        app — for measuring and referencing angles and distances right on your screen.
+      </p>
+      <p class="info-meta">License: GPL-3.0 &middot; &copy; Jian Zhong</p>
+      <div class="info-links">
+        <button class="info-link" data-url="https://github.com/JianZhongDev/OldSchoolGoniometerDesktopApp">GitHub ↗</button>
+        <button class="info-link" data-url="https://x.com/Jian_Zhong_Dev">X ↗</button>
+        <button class="info-link" data-url="https://www.linkedin.com/in/jian-zhong-dev/">LinkedIn ↗</button>
       </div>
     </div>
 

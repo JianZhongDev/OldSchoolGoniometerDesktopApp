@@ -142,6 +142,21 @@ body {
   color: #fff;
 }
 
+/* Icon-only buttons (e.g. the ⓘ info button): center a crisp inline SVG that
+   inherits the button's text color and scales with the theme. */
+#toolbar button.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+}
+
+#toolbar button.icon-btn svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+
 #toolbar button.danger:hover {
   background: #d93025;
   border-color: #d93025;
@@ -192,6 +207,73 @@ body {
   margin: 0;
   font-size: 11px;
   color: var(--hint);
+}
+
+/* --- Info / About popover --------------------------------------------------- */
+#info-popover {
+  position: absolute;
+  z-index: 20;
+  width: 250px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 4px 16px var(--panel-shadow);
+  color: var(--panel-text);
+}
+
+#info-popover[hidden] {
+  display: none;
+}
+
+#info-popover .info-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+#info-popover .info-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#info-popover .info-ver {
+  font-size: 11px;
+  color: var(--hint);
+}
+
+#info-popover .info-desc {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--panel-text);
+}
+
+#info-popover .info-meta {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: var(--hint);
+}
+
+#info-popover .info-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+#info-popover .info-link {
+  font: 600 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--accent);
+  background: var(--panel-btn-bg);
+  border: 1px solid var(--panel-btn-border);
+  border-radius: 6px;
+  padding: 6px 9px;
+  cursor: pointer;
+}
+
+#info-popover .info-link:hover {
+  background: var(--panel-btn-hover);
 }
 
 /* --- Numeric-entry input (PRD §6.3) ----------------------------------------- */

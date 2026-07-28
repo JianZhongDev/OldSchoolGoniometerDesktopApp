@@ -4,7 +4,7 @@
   "description": "A lightweight always-on-top goniometer overlay for measuring and drawing at precise angles in any application.",
   "main": "./out/main/index.js",
   "author": "Jian Zhong",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",

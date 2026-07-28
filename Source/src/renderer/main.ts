@@ -27,6 +27,7 @@ const stage = document.getElementById('stage') as HTMLElement
 const input = document.getElementById('angle-input') as HTMLInputElement
 const panel = document.getElementById('panel') as HTMLElement
 const popover = document.getElementById('popover') as HTMLElement
+const infoPopover = document.getElementById('info-popover') as HTMLElement
 
 // Readout row (in the panel)
 const roS = document.getElementById('ro-s') as HTMLButtonElement
@@ -38,6 +39,7 @@ const btnMode = document.getElementById('tb-mode') as HTMLButtonElement
 const btnSnap = document.getElementById('tb-snap') as HTMLButtonElement
 const btnMeasure = document.getElementById('tb-measure') as HTMLButtonElement
 const btnLock = document.getElementById('tb-lock') as HTMLButtonElement
+const btnInfo = document.getElementById('tb-info') as HTMLButtonElement
 const btnGear = document.getElementById('tb-gear') as HTMLButtonElement
 const btnQuit = document.getElementById('tb-quit') as HTMLButtonElement
 
@@ -60,6 +62,7 @@ let currentlyInteractive = false
 let isDragging = false
 let editing = false
 let popoverOpen = false
+let infoOpen = false
 let pendingRaf: number | null = null
 
 const pointer = { x: 0, y: 0, shift: false, alt: false }
@@ -218,7 +221,7 @@ function wirePointer(): void {
   // so this recovers a wedged loop within a second — the goniometer (and the
   // rest of the screen) can never stay permanently click-stuck.
   window.setInterval(() => {
-    if (isDragging || measuring || editing || popoverOpen) return
+    if (isDragging || measuring || editing || popoverOpen || infoOpen) return
     if (pendingRaf !== null) {
       cancelAnimationFrame(pendingRaf)
       pendingRaf = null
@@ -246,7 +249,7 @@ function inEl(elm: HTMLElement): boolean {
 }
 
 function overControls(): boolean {
-  return inEl(panel) || (popoverOpen && inEl(popover))
+  return inEl(panel) || (popoverOpen && inEl(popover)) || (infoOpen && inEl(infoPopover))
 }
 
 function setInteractive(v: boolean): void {
@@ -266,7 +269,7 @@ function handleMove(): void {
     return
   }
 
-  if (editing || popoverOpen || overControls()) {
+  if (editing || popoverOpen || infoOpen || overControls()) {
     setInteractive(true)
     document.body.style.cursor = 'default'
     return
@@ -291,6 +294,10 @@ function onMouseDown(e: MouseEvent): void {
   // Click outside the popover closes it.
   if (popoverOpen && !inEl(popover) && !inEl(panel)) {
     closePopover()
+    return
+  }
+  if (infoOpen && !inEl(infoPopover) && !inEl(panel)) {
+    closeInfo()
     return
   }
   // Clicks on the control panel (buttons, readout) are handled by their own
@@ -378,7 +385,7 @@ function updateDrag(): void {
 }
 
 function onWheel(e: WheelEvent): void {
-  if (state.locked || editing || popoverOpen || measuring) return
+  if (state.locked || editing || popoverOpen || infoOpen || measuring) return
   const hit = hitTest(state, e.clientX, e.clientY)
   if (hit === null) return
   e.preventDefault()
@@ -526,6 +533,11 @@ function wireToolbar(): void {
     window.api.setLocked(!state.locked)
   })
 
+  btnInfo.addEventListener('click', () => {
+    if (infoOpen) closeInfo()
+    else openInfo()
+  })
+
   btnGear.addEventListener('click', () => {
     if (popoverOpen) closePopover()
     else openPopover()
@@ -533,6 +545,14 @@ function wireToolbar(): void {
 
   btnQuit.addEventListener('click', () => {
     window.api.quit()
+  })
+
+  // Info-panel links open in the default browser (via main → shell.openExternal).
+  infoPopover.querySelectorAll<HTMLButtonElement>('.info-link').forEach((b) => {
+    b.addEventListener('click', () => {
+      const url = b.dataset.url
+      if (url) window.api.openExternal(url)
+    })
   })
 }
 
@@ -580,6 +600,7 @@ function wirePopover(): void {
 }
 
 function openPopover(): void {
+  if (infoOpen) closeInfo()
   popoverOpen = true
   popover.hidden = false
   syncControlsFromState()
@@ -591,6 +612,21 @@ function openPopover(): void {
 function closePopover(): void {
   popoverOpen = false
   popover.hidden = true
+  handleMove()
+}
+
+function openInfo(): void {
+  if (popoverOpen) closePopover()
+  infoOpen = true
+  infoPopover.hidden = false
+  positionControls()
+  currentlyInteractive = true
+  window.api.setPassthrough(false)
+}
+
+function closeInfo(): void {
+  infoOpen = false
+  infoPopover.hidden = true
   handleMove()
 }
 
@@ -629,18 +665,18 @@ function positionControls(): void {
   panel.style.left = `${left}px`
   panel.style.top = `${top}px`
 
-  if (popoverOpen) {
-    const pvW = popover.offsetWidth || 220
-    const pvH = popover.offsetHeight || 200
-    let pLeft = left
-    // Prefer above the panel; fall back to below if there isn't room.
-    let pTop = top - pvH - 6
-    if (pTop < 4) pTop = top + pH + 6
-    pLeft = clamp(pLeft, 4, Math.max(4, vp.width - pvW - 4))
-    pTop = clamp(pTop, 4, Math.max(4, vp.height - pvH - 4))
-    popover.style.left = `${pLeft}px`
-    popover.style.top = `${pTop}px`
-  }
+  if (popoverOpen) positionPopover(popover, left, top, pH)
+  if (infoOpen) positionPopover(infoPopover, left, top, pH)
+}
+
+/** Place a popover just above the panel (or below if there's no room). */
+function positionPopover(el: HTMLElement, panelLeft: number, panelTop: number, panelH: number): void {
+  const w = el.offsetWidth || 220
+  const h = el.offsetHeight || 200
+  let pTop = panelTop - h - 6
+  if (pTop < 4) pTop = panelTop + panelH + 6
+  el.style.left = `${clamp(panelLeft, 4, Math.max(4, vp.width - w - 4))}px`
+  el.style.top = `${clamp(pTop, 4, Math.max(4, vp.height - h - 4))}px`
 }
 
 // --- main-process subscriptions + viewport ------------------------------------

@@ -23,6 +23,9 @@ const api = {
   /** Quit the whole app (the overlay has no window chrome of its own). */
   quit: (): void => ipcRenderer.send('overlay:quit'),
 
+  /** Open an https URL (the info panel's links) in the default browser. */
+  openExternal: (url: string): void => ipcRenderer.send('overlay:open-external', url),
+
   // --- renderer -> main (request/response) ---
   setFocusable: (focusable: boolean): Promise<void> =>
     ipcRenderer.invoke('overlay:set-focusable', focusable),
