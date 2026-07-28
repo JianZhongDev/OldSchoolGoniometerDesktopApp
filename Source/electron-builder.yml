@@ -26,7 +26,10 @@ mac:
   target:
     - target: dmg
       arch: [universal]
-  icon: build/icon.icns
+  # A ready-made build/icon.icns is preferred, but if it's absent electron-builder
+  # generates the .icns from this PNG on the macOS runner (requires >=512px; ours
+  # is 1024x1024).
+  icon: build/icon.png
   category: public.app-category.graphics-design
   extendInfo:
     LSUIElement: true

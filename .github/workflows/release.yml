@@ -1,8 +1,9 @@
 name: Release
 
-# Build the Windows installers and publish them as GitHub Release assets.
-# Triggered by pushing a version tag (e.g. v1.0.0), or manually from the Actions
-# tab. The installers are NOT committed to the repo — they live only on Releases.
+# Build the Windows installers (.exe) and the macOS universal .dmg and publish
+# them as GitHub Release assets. Triggered by pushing a version tag (e.g. v1.0.0),
+# or manually from the Actions tab. The installers are NOT committed to the repo —
+# they live only on Releases.
 on:
   push:
     tags:
@@ -47,5 +48,44 @@ jobs:
         with:
           # electron-builder outputs to ../Apps (repo root) per electron-builder.yml.
           files: Apps/*.exe
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+
+  macos:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: Source
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node (matches the Volta pin)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.0'
+          cache: npm
+          cache-dependency-path: Source/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build renderer/main/preload
+        run: npm run build
+
+      - name: Package macOS universal .dmg
+        run: npx electron-builder --mac --publish never
+        env:
+          # Unsigned build (no Apple Developer ID). First launch needs the
+          # right-click -> Open Gatekeeper bypass. To sign + notarize, provide a
+          # Developer ID cert via CSC_LINK / CSC_KEY_PASSWORD and APPLE_ID /
+          # APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID, then remove this line.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Publish installer to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # electron-builder outputs to ../Apps (repo root) per electron-builder.yml.
+          files: Apps/*.dmg
           fail_on_unmatched_files: true
           generate_release_notes: true
