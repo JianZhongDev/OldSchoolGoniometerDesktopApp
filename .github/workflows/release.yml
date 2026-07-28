@@ -1,0 +1,51 @@
+name: Release
+
+# Build the Windows installers and publish them as GitHub Release assets.
+# Triggered by pushing a version tag (e.g. v1.0.0), or manually from the Actions
+# tab. The installers are NOT committed to the repo — they live only on Releases.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write # required to create/update the Release
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: Source
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node (matches the Volta pin)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.0'
+          cache: npm
+          cache-dependency-path: Source/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build renderer/main/preload
+        run: npm run build
+
+      - name: Package Windows installer + portable
+        run: npx electron-builder --win --publish never
+        env:
+          # Unsigned build. To sign, add a certificate and set CSC_LINK /
+          # CSC_KEY_PASSWORD secrets and remove this line.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Publish installers to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # electron-builder outputs to ../Apps (repo root) per electron-builder.yml.
+          files: Apps/*.exe
+          fail_on_unmatched_files: true
+          generate_release_notes: true

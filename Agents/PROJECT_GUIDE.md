@@ -16,7 +16,9 @@
   arms) over every other application, so a designer can visually reference an
   angle or distance while working in any other app.
 - **Where the code is:** `Source/` (all app code). `Planning/` holds the original
-  PRD. `Apps/` holds the built installers (git-ignored). `Agents/` holds this doc.
+  PRD. `Agents/` holds this doc. Built installers are **not** in the repo — they're
+  published to **GitHub Releases** by CI (§11.4); local builds land in `Apps/`
+  (git-ignored).
 - **Language/stack:** Electron 31 + TypeScript 5 + electron-vite 2, **no UI
   framework** — the whole UI is one inline SVG plus a small HTML control panel.
 - **Toolchain:** Node is pinned to **20.18.0** / npm **10.8.2** via **Volta**.
@@ -92,11 +94,14 @@ down); range `[0, 360)`. Screen Y is down, so the Y term is negated in the math.
 - **Auto-update, Linux, multi-goniometer-per-display, CV angle detection** are
   explicitly out of scope.
 
-### Git status (as of this writing)
-- New repo: `github.com/JianZhongDev/OldSchoolGoniometerDesktopApp` (branch `main`).
-- Local commit `fcbb361 "Migrate Goniometer overlay app…"` is **committed but NOT
-  yet pushed** to `origin/main`. Push with `git push origin main` (clean
-  fast-forward over the repo's `Initial commit`).
+### Git / distribution status
+- Repo: `github.com/JianZhongDev/OldSchoolGoniometerDesktopApp` (branch `main`),
+  pushed and in sync.
+- **Installers are distributed via GitHub Releases** (built by CI, §11.4) — they
+  are no longer committed to the repo, and the previously-committed binaries were
+  purged from history via `filter-branch` + force-push.
+- Commit messages here **omit** the `Co-Authored-By: Claude` trailer (user
+  preference — GitHub was listing Claude as a contributor).
 - The old, typo-named folder/repo `OldSchoolGaniometerDesktopApp` still exists as
   a backup (its git remote points at the old `…Ganiometer…` GitHub repo).
 
@@ -109,7 +114,8 @@ down); range `[0, 360)`. Screen Y is down, so the Y term is negated in the math.
 | `D:\Workspace\DesktopProjects\OldSchoolGoniometerDesktopApp\` | **Current** repo root (correct spelling). |
 | `…\Source\` | All app source + config. Run npm commands from here. |
 | `…\Planning\goniometer-overlay-prd.md` | Original product requirements doc. |
-| `…\Apps\` | Built installers (git-ignored, regenerable). |
+| `…\Apps\` | Local build output (git-ignored). Releases host the shipped installers. |
+| `…\.github\workflows\release.yml` | CI that builds + publishes installers to Releases (§11.4). |
 | `…\Agents\PROJECT_GUIDE.md` | This document. |
 | `D:\Workspace\DesktopProjects\OldSchoolGaniometerDesktopApp\` | **OLD** folder (typo). Safe backup; not the working copy. |
 
@@ -422,6 +428,49 @@ Both current builds are **unsigned**. First launch shows a one-time prompt
 Open → Open). After that, all functionality works. Public distribution should be
 signed (Apple Developer Program ~$99/yr + notarization; a Windows OV/EV cert).
 
+### 11.4 Distribution — GitHub Releases via CI (installers are NOT in the repo)
+
+The built installers are **published to GitHub Releases**, not committed to git
+(that keeps clones small and history clean). `Apps/` and `AppsBuild/` are
+git-ignored. Do **not** `git add` the `.exe`/`.dmg` files.
+
+**How releases are produced** — [`.github/workflows/release.yml`](../.github/workflows/release.yml):
+- Trigger: pushing a tag matching `v*` (e.g. `v1.0.0`), or the **Run workflow**
+  button on the Actions tab (`workflow_dispatch`).
+- Runs on `windows-latest`, sets up Node 20.18.0, `npm ci`, `npm run build`,
+  `npx electron-builder --win --publish never`, then attaches `Apps/*.exe` to the
+  Release with `softprops/action-gh-release`.
+- Auth: uses the built-in `GITHUB_TOKEN` (workflow has `permissions: contents:
+  write`) — no manual login or secrets needed for an unsigned build. The CI
+  runner has the privileges electron-builder's `winCodeSign` needs, so the local
+  symlink/Defender workarounds from §11.1 are **not** required in CI.
+
+**To cut a release:**
+```bash
+# 1. Bump the version so the installer filename + release match the tag:
+#    edit Source/package.json  "version": "1.0.1"   (commit it)
+# 2. Tag and push — this triggers the workflow:
+git tag v1.0.1
+git push origin v1.0.1
+# 3. Watch the Actions tab; when green, the installers are on the Releases page.
+```
+The installer filenames come from `Source/package.json` `version`, so **keep the
+tag and that version in sync** (tag `vX.Y.Z` ↔ version `X.Y.Z`).
+
+**macOS in CI:** not enabled yet. To add it, create a `macos-latest` job mirroring
+the Windows one running `npm run package:mac`, and first commit a
+`Source/build/icon.icns` (see §11.2). For a notarized signed build, add
+`APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` (and a Developer ID
+cert) as repo secrets.
+
+**Signing in CI (optional):** add the cert as a base64 secret + `CSC_LINK` /
+`CSC_KEY_PASSWORD` (Windows) and remove the `CSC_IDENTITY_AUTO_DISCOVERY: false`
+line from the workflow.
+
+> The installers were historically committed to `Apps/` for a few commits; that
+> was later removed and the binaries were purged from git history (a
+> `filter-branch` + force-push) to reclaim the space. Keep them out of git.
+
 ---
 
 ## 12. Testing / verification approach
@@ -490,10 +539,10 @@ cause.
 
 ## 14. Suggested next steps / TODO
 
-1. **Push the migration commit** to the new GitHub repo: `git push origin main`
-   (from the repo root). It's a clean fast-forward.
-2. **macOS build**: on a Mac, generate `build/icon.icns`, run `npm run
-   package:mac`; ideally sign + notarize.
+1. **Cut the first release**: bump `Source/package.json` version, then
+   `git tag vX.Y.Z && git push origin vX.Y.Z` to trigger the CI release (§11.4).
+2. **macOS build/CI**: on a Mac (or a `macos-latest` CI job), generate
+   `build/icon.icns`, run `npm run package:mac`; ideally sign + notarize.
 3. **Code signing** for both platforms for a clean download experience.
 4. **Clean-VM verification** (PRD §9.6) before any public release.
 5. Optional polish from the PRD's open questions: "snap stationary arm to
@@ -529,5 +578,14 @@ cause.
 9. **Windows packaging** — produced NSIS installer + portable exe (with the
    winCodeSign + Defender workarounds).
 10. **Repo migration** — moved the project into the correctly-spelled
-    `OldSchoolGoniometerDesktopApp` repo/folder and copied in the built installers.
+    `OldSchoolGoniometerDesktopApp` repo/folder.
+11. **About panel** — added the ⓘ info popover (description, GPL-3.0 license,
+    GitHub/X/LinkedIn links via an https-only `openExternal` IPC); crisp inline-SVG
+    icon; corrected `package.json` license to `GPL-3.0-only`.
+12. **Transparent-window freeze mitigation** — `app.disableHardwareAcceleration()`
+    (software compositing is more stable for a transparent always-on-top overlay
+    on Windows).
+13. **Release distribution** — installers moved out of the repo to **GitHub
+    Releases** via `.github/workflows/release.yml`; existing binaries purged from
+    git history.
 ```

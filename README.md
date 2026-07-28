@@ -34,9 +34,9 @@ to the app underneath, except on the goniometer itself.
 ## 📥 Install
 
 ### Windows
-1. Download an app from the [`Apps/`](Apps) folder:
-   - **`Goniometer Overlay Setup 1.0.0.exe`** — installer (adds Start-menu + desktop shortcuts), **or**
-   - **`Goniometer Overlay 1.0.0.exe`** — portable (runs directly, no install).
+1. Download an app from the [**Releases**](https://github.com/JianZhongDev/OldSchoolGoniometerDesktopApp/releases) page:
+   - **`Goniometer Overlay Setup <version>.exe`** — installer (adds Start-menu + desktop shortcuts), **or**
+   - **`Goniometer Overlay <version>.exe`** — portable (runs directly, no install).
 2. Run it.
    > ⚠️ These builds aren't code-signed yet, so Windows SmartScreen shows *"Windows
    > protected your PC"* on first launch. Click **More info → Run anyway**. After
