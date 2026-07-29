@@ -44,16 +44,44 @@ to the app underneath, except on the goniometer itself.
 3. There's **no window to close** — the app lives in the **system tray** (protractor icon). Quit from there, from the **✕** button on the on-screen panel, or with **Ctrl + Shift + Q**.
 
 ### macOS
+
 1. Download **`Goniometer Overlay <version>-universal.dmg`** from the
    [**Releases**](https://github.com/JianZhongDev/OldSchoolGoniometerDesktopApp/releases)
    page (a universal build — runs on both Apple Silicon and Intel).
-2. Open the `.dmg` and drag the app to **Applications**.
-3. First launch: right-click the app → **Open → Open**.
-   > ⚠️ This build isn't code-signed/notarized yet, so double-clicking shows
-   > *"…can't be opened because Apple cannot check it for malicious software."*
-   > The right-click → **Open** bypass only needs doing once.
-4. The app runs in the **menu bar** (no dock icon). Quit from there, from the
-   **✕** button on the on-screen panel, or with **Cmd + Shift + Q**.
+2. Open the `.dmg` and drag the app into **Applications**.
+3. Get past Gatekeeper (needed **once** — see [Why this is needed](#why-the-extra-steps-on-macos) below), then the app runs in the **menu bar** (no dock icon). Quit from there, from the **✕** button on the on-screen panel, or with **Cmd + Shift + Q**.
+
+#### Getting past Gatekeeper (first launch only)
+
+Because this build isn't yet signed/notarized (see below), macOS blocks it on first launch. Use **Method A**; if the app still won't open (e.g. you see *"is damaged and can't be opened"*), use **Method B**.
+
+**Method A — System Settings (no Terminal)** — Apple's supported way to run an app from an unidentified developer:
+
+1. Double-click the app once. macOS shows a warning and refuses to open it — that's expected; click **Done**.
+2. Open  → **System Settings** → **Privacy & Security**, scroll to the **Security** section.
+3. You'll see *"Goniometer Overlay was blocked to protect your Mac."* Click **Open Anyway**.
+4. Confirm with **Open Anyway**, then authenticate with your login password / Touch ID.
+
+   > The **Open Anyway** button only appears for about an hour after you try to
+   > open the app, and it grants a permanent per-app exception, so you won't need
+   > to repeat this. See Apple's guide:
+   > [Open a Mac app from an unknown developer](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac).
+
+**Method B — Terminal (fallback)** — if Method A doesn't clear it, remove the download-quarantine flag macOS attached to the file, then open normally:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Goniometer Overlay.app"
+```
+
+(Adjust the path if you put the app elsewhere. `-d` deletes the attribute, `-r` recurses into the app bundle. Add `sudo` in front only if it reports *permission denied*.) After this, open the app from Applications as usual. This is the same thing Method A does, just done directly to the file.
+
+> **Only run these steps for apps you trust** — they intentionally lower a macOS
+> security check. Apple notes that overriding Gatekeeper is a common way Macs get
+> infected, so don't apply these to software from sources you don't recognize.
+
+#### Why the extra steps on macOS?
+
+The app is **not code-signed or notarized yet** (that requires a paid Apple Developer account). macOS's Gatekeeper blocks unsigned apps downloaded from the internet by default and tags them with a "quarantine" flag, which is what produces the *"cannot be checked for malicious software"* / *"is damaged"* messages. The steps above tell macOS to trust this specific app once; nothing about the app itself changes. A future signed + notarized build will remove these steps entirely.
 
 ---
 
