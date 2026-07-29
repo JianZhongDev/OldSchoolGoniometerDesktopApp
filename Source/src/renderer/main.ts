@@ -586,17 +586,51 @@ function wirePopover(): void {
     refreshToolbar()
     saveNow()
   })
-  pvPpi.addEventListener('change', () => {
-    const v = parseFloat(pvPpi.value)
-    // The field is px/mm in metric mode, px/inch otherwise; store canonical px/inch.
-    const perInch = state.displayMode === 'rulerMetric' ? v * MM_PER_INCH : v
-    // Clamp to a sane range: 0 means "auto (DPI)"; otherwise keep it well above
-    // zero so the ruler can never be asked for an absurd number of graduations.
-    state.pxPerInch = isFinite(perInch) && perInch > 0 ? clamp(perInch, 12, 1200) : 0
-    syncControlsFromState()
-    draw()
-    saveNow()
+  // The calibration field accepts direct typing / pasting. Because the overlay
+  // window is created focusable:false (so it never steals the underlying app's
+  // selection), it receives no keyboard events by default — so, exactly like the
+  // numeric angle entry, we flip focusable ON while this field is being edited and
+  // OFF again on blur. Without this the field could only be nudged with its mouse
+  // spinner; typing and paste silently did nothing.
+  pvPpi.addEventListener('focus', async () => {
+    await window.api.setFocusable(true)
+    pvPpi.focus()
   })
+  pvPpi.addEventListener('change', commitPpi) // fires on Enter, blur, and spinner
+  pvPpi.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      pvPpi.blur() // commit (via change) + release focus (via blur)
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      syncControlsFromState() // discard the in-progress edit
+      pvPpi.blur()
+    }
+  })
+  pvPpi.addEventListener('blur', () => {
+    window.api.setFocusable(false)
+  })
+}
+
+/**
+ * Validate + apply the ruler calibration typed/pasted into the calibration field.
+ * The field is px/mm in metric mode and px/inch otherwise; both are stored
+ * canonically as px/inch. Only finite, positive numbers are accepted — anything
+ * else (empty, non-numeric, ≤ 0) is rejected and the field is restored to its
+ * last good value. Accepted values are clamped to [12, 1200] px/inch so the ruler
+ * can never be asked for an absurd (or infinite) number of graduations.
+ */
+function commitPpi(): void {
+  const v = parseFloat(pvPpi.value)
+  if (!isFinite(v) || v <= 0) {
+    syncControlsFromState() // reject: restore the last valid value
+    return
+  }
+  const perInch = state.displayMode === 'rulerMetric' ? v * MM_PER_INCH : v
+  state.pxPerInch = clamp(perInch, 12, 1200)
+  syncControlsFromState() // reflect any clamping back into the field
+  draw()
+  saveNow()
 }
 
 function openPopover(): void {
@@ -645,11 +679,19 @@ function syncControlsFromState(): void {
   const ppiHint = document.querySelector('#popover .hint') as HTMLElement | null
   if (ppiRow) ppiRow.style.display = showCalib ? '' : 'none'
   if (ppiHint) ppiHint.style.display = showCalib ? '' : 'none'
+  // The valid range is a canonical [12, 1200] px/inch; expose it in the field's
+  // own unit so the spinner + browser validity hints match what we accept.
   if (state.displayMode === 'rulerMetric') {
     pvPpiLabel.textContent = 'Ruler px / mm'
+    pvPpi.min = (12 / MM_PER_INCH).toFixed(2) // ≈ 0.47
+    pvPpi.max = (1200 / MM_PER_INCH).toFixed(2) // ≈ 47.24
+    pvPpi.step = '0.01'
     pvPpi.value = (effPxPerInch() / MM_PER_INCH).toFixed(2)
   } else {
     pvPpiLabel.textContent = 'Ruler px / inch'
+    pvPpi.min = '12'
+    pvPpi.max = '1200'
+    pvPpi.step = '0.1'
     pvPpi.value = effPxPerInch().toFixed(1)
   }
 }

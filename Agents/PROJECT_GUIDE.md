@@ -260,7 +260,11 @@ See §13 for the freeze bug this caused and the self-healing fix.
 The window is `focusable:false` so it never steals the design tool's selection.
 But a non-focusable window can't receive keyboard input. So numeric entry
 temporarily calls `window.api.setFocusable(true)` (main flips it and focuses),
-then `false` again on Enter/Escape.
+then `false` again on Enter/Escape. **The settings popover's ruler-calibration
+number field uses the same dance** (on its `focus`/`blur`), keyed off the field —
+not the popover — so mouse-only controls (sliders, the snap-step `<select>`) never
+steal focus. Any *new* text/number input added to the chrome must do this too, or
+it will silently reject typing and paste (only its mouse spinner will work).
 
 ### 7.4 Self-healing passthrough loop
 `mousemove` schedules `handleMove` via `requestAnimationFrame`, throttled. If an

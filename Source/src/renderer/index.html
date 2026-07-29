@@ -75,9 +75,9 @@
         </select>
       </label>
       <label><span id="pv-ppi-label">Ruler px / inch</span>
-        <input id="pv-ppi" type="number" min="1" max="600" step="0.1" />
+        <input id="pv-ppi" type="number" inputmode="decimal" min="0" step="0.01" autocomplete="off" />
       </label>
-      <p class="hint">Calibrate against a real ruler if the on-screen size is off. Auto-tracks display scaling.</p>
+      <p class="hint">Type or paste a value (or use a real ruler to calibrate). Auto-tracks display scaling. Out-of-range entries are clamped; invalid entries are ignored.</p>
     </div>
 
     <input id="angle-input" type="text" spellcheck="false" autocomplete="off" />
